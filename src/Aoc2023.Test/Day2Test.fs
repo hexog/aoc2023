@@ -6,12 +6,12 @@ open NUnit.Framework
 [<Test>]
 let Test1() =
     let result = Day2.sumPlayableWithSetGameIds input
-    Assert.Pass(result.ToString())
+    Assert.AreEqual(1734, result)
 
 [<Test>]
 let Test2() =
     let result = Day2.sumAllGamesBallSetPowers (enumerateLines input)
-    Assert.Pass(result.ToString())
+    Assert.AreEqual(70387, result)
 
 let input = """Game 1: 4 green, 3 blue, 11 red; 7 red, 5 green, 10 blue; 3 green, 8 blue, 8 red; 4 red, 12 blue; 15 red, 3 green, 10 blue
 Game 2: 3 red, 1 blue, 2 green; 1 blue, 9 green; 1 red, 10 green
