@@ -68,6 +68,10 @@ let isPossibleSetForGame (ballSet: BallSet) (game: Game) =
     && game.SmallestPlayableSet.Blue <= ballSet.Blue
     && game.SmallestPlayableSet.Green <= ballSet.Green
 
+let calculateBallSetPower (ballSet: BallSet) =
+    ballSet.Red * ballSet.Blue * ballSet.Green
+    |> int
+
 let sumPlayableWithSetGameIds (input: string) =
 
     let gameSet = { Red = 12<red>; Blue = 14<blue>; Green = 13<green> }
@@ -80,3 +84,7 @@ let sumPlayableWithSetGameIds (input: string) =
         if isPossibleSetForGame gameSet game then
             sum <- sum + game.Id
     sum
+
+let sumAllGamesBallSetPowers (input: string seq) =
+    input
+    |> Seq.sumBy (fun line -> (parseGame line).SmallestPlayableSet |> calculateBallSetPower)
