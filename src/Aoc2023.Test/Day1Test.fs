@@ -13,13 +13,13 @@ let Test () =
 
     let result = Day1.sumAllCalibrationValues input
 
-    Assert.AreEqual(result, 54940)
+    Assert.AreEqual(54940, result)
 
 
 [<Test>]
 let Test2 () =
     let result = Day1.sumAllCalibrationStringValues input
-    Assert.AreEqual(result, 54208)
+    Assert.AreEqual(54208, result)
 
 let input =
     """fouronevhnrz44
