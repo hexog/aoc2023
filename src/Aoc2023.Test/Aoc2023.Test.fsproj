@@ -12,6 +12,7 @@
     <Compile Include="Common.fs" />
     <Compile Include="Day1Test.fs" />
     <Compile Include="Day2Test.fs" />
+    <Compile Include="Day3Test.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
