@@ -7,6 +7,12 @@ open NUnit.Framework
 let ``Part 1`` (input: string) =
     Day3.getEnginePartSum input
 
+
+[<TestCaseSource("testcases2")>]
+let ``Part 2`` (input: string) =
+    Day3.getGearRatioSum input
+
+
 let testcases () = seq {
     TestCaseData(inputExample)
         .SetName("Example")
@@ -15,6 +21,16 @@ let testcases () = seq {
     TestCaseData(input)
         .SetName("Input")
         .Returns(520135)
+}
+
+let testcases2 () = seq {
+    TestCaseData(inputExample)
+        .SetName("Example")
+        .Returns(467835)
+
+    TestCaseData(input)
+        .SetName("Input")
+        .Returns(72514855)
 }
 
 [<Literal>]

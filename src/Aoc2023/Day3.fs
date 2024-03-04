@@ -148,3 +148,31 @@ let getEnginePartSum (input: string) =
                     safeAddEnginePart enginePart
 
     enginePartSum
+
+
+let getGearRatioSum (input: string) =
+    let lines = input.Split("\n", StringSplitOptions.TrimEntries ||| StringSplitOptions.RemoveEmptyEntries)
+    assert (lines |> Seq.forall (_.Length >> (=) lines[0].Length))
+
+    let gearAdjacentPartSet = HashSet()
+
+    let mutable gearRatioSum = 0
+    let addGearRatio (value: int) = gearRatioSum <- gearRatioSum + value
+    let twoElementArray = Array.zeroCreate 2
+
+    for top = 0 to lines.Length - 1 do
+        for left = 0 to lines[0].Length - 1 do
+            let currentSymbol = lines[top][left]
+            if currentSymbol = '*' then
+                let engineParts = getAdjacentNumbers lines top left
+                gearAdjacentPartSet.Clear()
+                for enginePart in engineParts do
+                    gearAdjacentPartSet.Add(enginePart) |> ignore
+
+                if gearAdjacentPartSet.Count = 2 then
+                    gearAdjacentPartSet.CopyTo(twoElementArray)
+                    let left = twoElementArray[0]
+                    let right = twoElementArray[1]
+                    addGearRatio (left.Number * right.Number)
+
+    gearRatioSum
