@@ -52,3 +52,50 @@ let calculatePoints (input: string) =
         addCardPointsToTotal ()
 
     pointsTotal
+
+let countScratchCards (input: string) =
+
+    let mutable cardsTotal = 0
+    let addCardsTotal (value: int) =
+        cardsTotal <- cardsTotal + value
+
+    let cardCopyCountStore = Array.zeroCreate 500
+    let mutable cardCopyCountStoreStartIndex = 0
+
+    let saveCardCopyCount (cardCountToCopy: int) (copyTimes: int) =
+        for i = cardCopyCountStoreStartIndex + 1 to cardCopyCountStoreStartIndex + cardCountToCopy do
+            if i > cardCopyCountStore.Length then
+                let i = i - cardCopyCountStore.Length
+                let mutable cardCopyCount = &cardCopyCountStore[i]
+                cardCopyCount <- cardCopyCount + copyTimes
+            else
+                let mutable cardCopyCount = &cardCopyCountStore[i]
+                cardCopyCount <- cardCopyCount + copyTimes
+
+    let getCopyCountOfCurrentCard () =
+        cardCopyCountStore[cardCopyCountStoreStartIndex]
+
+    let cardWinningNumberSet = HashSet()
+    let addCardWinningNumber (value: int) = cardWinningNumberSet.Add(value) |> ignore
+    let onMovingToNextCard () =
+        cardWinningNumberSet.Clear()
+        cardCopyCountStore[cardCopyCountStoreStartIndex] <- 0
+        cardCopyCountStoreStartIndex <- cardCopyCountStoreStartIndex + 1
+        if cardCopyCountStoreStartIndex > cardCopyCountStore.Length then
+            cardCopyCountStoreStartIndex <- 0
+
+    let mutable cardMatchingNumbers = 0
+    let tryAddCardMatchingNumber (number: int) =
+        if cardWinningNumberSet.Contains(number) then
+            cardMatchingNumbers <- cardMatchingNumbers + 1
+
+    for line in enumerateSpanLines (input.AsSpan()) do
+        parseCardInfo line addCardWinningNumber tryAddCardMatchingNumber |> ignore
+        let cardCopyCount = getCopyCountOfCurrentCard ()
+        addCardsTotal (cardCopyCount + 1)
+        if cardMatchingNumbers > 0 then
+            saveCardCopyCount cardMatchingNumbers (cardCopyCount + 1)
+            cardMatchingNumbers <- 0
+        onMovingToNextCard ()
+
+    cardsTotal
