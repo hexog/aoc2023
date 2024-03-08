@@ -1,6 +1,7 @@
 ﻿module Aoc2023.Day5
 
 open System
+open System.Threading.Tasks
 
 [<Measure>]
 type seed
@@ -181,3 +182,33 @@ let findLowestLocationNumberForSeeds (input: string) =
     seeds
     |> Seq.map (mapper mappings)
     |> Seq.min
+
+let findLowestLocationNumberForSeedRanges (input: string) =
+    let struct(seeds, mappings) = parseMappings input
+
+    let unwrapSeedRangesBuffered (seeds: uint<seed> seq) : array<uint<seed>> seq = seq {
+        let buffer = Array.zeroCreate 2000
+        let mutable bufferIndex = 0
+        for pair in seeds |> Seq.chunkBySize 2 do
+            assert (pair.Length = 2)
+            match pair with
+            | [| left; right |] ->
+                for i = uint left to uint left + uint right - 1u do
+                    buffer[bufferIndex] <- i * 1u<seed>
+                    bufferIndex <- bufferIndex + 1
+                    if bufferIndex = buffer.Length then
+                        yield buffer
+                        bufferIndex <- 0
+            | _ -> failwith ""
+        yield buffer[.. bufferIndex - 1]
+    }
+
+    let mutable min = UInt32.MaxValue * 1u<location>
+    let updateMin (value: uint<location>) =
+        if value < min then
+            min <- value
+
+    unwrapSeedRangesBuffered seeds
+    |> Seq.iter (fun x-> Parallel.ForEach(x, (mapper mappings >> updateMin)) |> ignore)
+
+    min

@@ -19,16 +19,16 @@ let testcases1 () = seq {
 
 [<TestCaseSource("testcases2")>]
 let ``Part 2`` (input: string) =
-    ()
+    Day5.findLowestLocationNumberForSeedRanges input
 
 let testcases2 () = seq {
     TestCaseData(inputExample)
         .SetName("Example")
-        .Returns(30)
+        .Returns(46)
 
     TestCaseData(input)
         .SetName("Input")
-        .Returns(8477787)
+        .Returns(37806486)
 }
 
 [<Literal>]
