@@ -2,6 +2,7 @@
 
 open System
 open System.Threading.Tasks
+open FSharp.Core.Operators.Checked
 
 [<Measure>]
 type seed
@@ -31,9 +32,9 @@ type location
 type range
 
 type Mapping<[<Measure>] 'source, [<Measure>] 'destination> = {
-    DestinationRangeStart: uint<'destination>
-    SourceRangeStart: uint<'source>
-    RangeLength: uint<range>
+    DestinationRangeStart: uint64<'destination>
+    SourceRangeStart: uint64<'source>
+    RangeLength: uint64<range>
 }
 
 type SeedMappings = {
@@ -48,17 +49,17 @@ type SeedMappings = {
 
 let calculateMappedValue<[<Measure>] 'source, [<Measure>] 'destination>
     (mapping: Mapping<'source, 'destination>)
-    (sourceValue: uint<'source>)
-    : uint<'destination> voption
+    (sourceValue: uint64<'source>)
+    : uint64<'destination> voption
     =
-    let calculateRangeMaxValue (minValue: uint<'source>) (range: uint<range>) : uint<'source> =
-        (uint minValue) + (uint range - 1u) |> LanguagePrimitives.UInt32WithMeasure
+    let calculateRangeMaxValue (minValue: uint64<'source>) (range: uint64<range>) : uint64<'source> =
+        (uint64 minValue) + (uint64 range - 1UL) |> LanguagePrimitives.UInt64WithMeasure
 
-    let calculateDistance (minValue: uint<'source>) (value: uint<'source>) : uint<range> =
-        (uint value) - (uint minValue) |> LanguagePrimitives.UInt32WithMeasure
+    let calculateDistance (minValue: uint64<'source>) (value: uint64<'source>) : uint64<range> =
+        (uint64 value) - (uint64 minValue) |> LanguagePrimitives.UInt64WithMeasure
 
-    let calculatePositionOnDestinationRange (minValue: uint<'destination>) (distance: uint<range>) : uint<'destination> =
-        (uint minValue) + (uint distance) |> LanguagePrimitives.UInt32WithMeasure
+    let calculatePositionOnDestinationRange (minValue: uint64<'destination>) (distance: uint64<range>) : uint64<'destination> =
+        (uint64 minValue) + (uint64 distance) |> LanguagePrimitives.UInt64WithMeasure
 
     let sourceMinValue = mapping.SourceRangeStart
     if sourceValue < sourceMinValue then
@@ -78,12 +79,12 @@ let calculateMappedValue<[<Measure>] 'source, [<Measure>] 'destination>
 
 let calculateFirstMapping
     (mappings: Mapping<'source, 'destination> list)
-    (sourceValue: uint<'source>)
-    : uint<'destination> =
-    let convert (value: uint<'source>) : uint<'destination> =
-        (uint value) |> LanguagePrimitives.UInt32WithMeasure
+    (sourceValue: uint64<'source>)
+    : uint64<'destination> =
+    let convert (value: uint64<'source>) : uint64<'destination> =
+        (uint64 value) |> LanguagePrimitives.UInt64WithMeasure
 
-    let rec tryUseCorrectMapping (mappings: Mapping<'source, 'destination> list) (sourceValue: uint<'source>) =
+    let rec tryUseCorrectMapping (mappings: Mapping<'source, 'destination> list) (sourceValue: uint64<'source>) =
         match mappings with
         | [] -> ValueNone
         | mapping :: mappings ->
@@ -95,7 +96,7 @@ let calculateFirstMapping
     | ValueSome result -> result
     | ValueNone -> convert sourceValue
 
-let mapper (mappings: SeedMappings) (input: uint<seed>) : uint<location> =
+let mapper (mappings: SeedMappings) (input: uint64<seed>) : uint64<location> =
     input
     |> calculateFirstMapping mappings.SeedToSoil
     |> calculateFirstMapping mappings.SoilToFertilizer
@@ -110,12 +111,12 @@ let parseMapping<[<Measure>] 'source, [<Measure>] 'destination> (input: string l
     let parseLine (line: string) : Mapping<'source, 'destination> =
         let parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries ||| StringSplitOptions.TrimEntries)
         assert (parts.Length = 3)
-        let destinationRangeStart = UInt32.Parse(parts[0])
-        let sourceRangeStart = UInt32.Parse(parts[1])
-        let rangeLength = UInt32.Parse(parts[2])
-        { DestinationRangeStart = destinationRangeStart |> LanguagePrimitives.UInt32WithMeasure
-          SourceRangeStart = sourceRangeStart |> LanguagePrimitives.UInt32WithMeasure
-          RangeLength = rangeLength * 1u<range> }
+        let destinationRangeStart = UInt64.Parse(parts[0])
+        let sourceRangeStart = UInt64.Parse(parts[1])
+        let rangeLength = UInt64.Parse(parts[2])
+        { DestinationRangeStart = destinationRangeStart |> LanguagePrimitives.UInt64WithMeasure
+          SourceRangeStart = sourceRangeStart |> LanguagePrimitives.UInt64WithMeasure
+          RangeLength = rangeLength * 1UL<range> }
 
     let rec loop input mappings =
         match input with
@@ -138,7 +139,7 @@ let parseMappings (input: string) =
         assert seedsString.StartsWith("seeds: ")
         seedsString.Substring("seeds: ".Length)
             .Split(' ', StringSplitOptions.RemoveEmptyEntries ||| StringSplitOptions.TrimEntries)
-        |> Array.map (fun x -> UInt32.Parse(x) * 1u<seed>)
+        |> Array.map (fun x -> UInt64.Parse(x) * 1UL<seed>)
     assert (seeds.Length > 0)
 
     let mutable mappings : SeedMappings =
@@ -186,15 +187,15 @@ let findLowestLocationNumberForSeeds (input: string) =
 let findLowestLocationNumberForSeedRanges (input: string) =
     let struct(seeds, mappings) = parseMappings input
 
-    let unwrapSeedRangesBuffered (seeds: uint<seed> seq) : array<uint<seed>> seq = seq {
+    let unwrapSeedRangesBuffered (seeds: uint64<seed> seq) : array<uint64<seed>> seq = seq {
         let buffer = Array.zeroCreate 2000
         let mutable bufferIndex = 0
         for pair in seeds |> Seq.chunkBySize 2 do
             assert (pair.Length = 2)
             match pair with
             | [| left; right |] ->
-                for i = uint left to uint left + uint right - 1u do
-                    buffer[bufferIndex] <- i * 1u<seed>
+                for i = uint64 left to uint64 left + uint64 right - 1UL do
+                    buffer[bufferIndex] <- i * 1UL<seed>
                     bufferIndex <- bufferIndex + 1
                     if bufferIndex = buffer.Length then
                         yield buffer
@@ -203,8 +204,8 @@ let findLowestLocationNumberForSeedRanges (input: string) =
         yield buffer[.. bufferIndex - 1]
     }
 
-    let mutable min = UInt32.MaxValue * 1u<location>
-    let updateMin (value: uint<location>) =
+    let mutable min = UInt64.MaxValue * 1UL<location>
+    let updateMin (value: uint64<location>) =
         if value < min then
             min <- value
 
@@ -212,3 +213,137 @@ let findLowestLocationNumberForSeedRanges (input: string) =
     |> Seq.iter (fun x-> Parallel.ForEach(x, (mapper mappings >> updateMin)) |> ignore)
 
     min
+
+// # Version 2
+
+type MappedRange<[<Measure>] 'step> = {
+    Start: uint64<'step>
+    Length: uint64<range>
+}
+
+module MappedRange =
+    let convert<[<Measure>] 'source, [<Measure>] 'destination> (range: MappedRange<'source>) : MappedRange<'destination> =
+        { Start = (uint64 range.Start) |> LanguagePrimitives.UInt64WithMeasure
+          Length = range.Length }
+
+let calculateMappedRange<[<Measure>] 'source, [<Measure>] 'destination>
+    (mapping: Mapping<'source, 'destination>)
+    (sourceRange: MappedRange<'source>)
+    : MappedRange<'source> Set * MappedRange<'destination> Set
+    =
+    let convert = MappedRange.convert<'source, 'destination>
+
+    let buildMappedRange (start: uint64) (length: uint64) : MappedRange<'source> =
+        { Start = start |> LanguagePrimitives.UInt64WithMeasure
+          Length = length |> LanguagePrimitives.UInt64WithMeasure }
+
+    let map (source: MappedRange<'source>) : MappedRange<'destination> =
+        let start = int64 source.Start
+        let difference = int64 mapping.DestinationRangeStart - int64 mapping.SourceRangeStart
+        let newStart = start + difference |> uint64
+        buildMappedRange newStart (uint64 source.Length)
+        |> convert
+
+    let x1 = uint64 sourceRange.Start
+    let y1 = uint64 sourceRange.Start + uint64 sourceRange.Length - 1UL
+
+    let x2 = uint64 mapping.SourceRangeStart
+    let y2 = uint64 mapping.SourceRangeStart + uint64 mapping.RangeLength  - 1UL
+
+    if y1 < x2 || x1 > y2 then
+        Set.singleton sourceRange, Set.empty
+    else
+
+    let sourceRanges = ResizeArray()
+    let destinationRanges = ResizeArray()
+    if x1 >= x2 && y1 <= y2 then
+        destinationRanges.Add(map sourceRange)
+    else
+        if x1 < x2 then
+            sourceRanges.Add(buildMappedRange x1 (x2 - x1))
+        else
+            destinationRanges.Add(buildMappedRange x1 (min y1 y2 - x1 + 1UL) |> map)
+        if y1 <= y2 then
+            let start = max x1 x2
+            destinationRanges.Add(buildMappedRange start (y1 - start + 1UL) |> map)
+        else
+            sourceRanges.Add(buildMappedRange (y2 + 1UL (*edge*)) (y1 - y2))
+        if x1 < x2 && y1 > y2 then
+            destinationRanges.Add(buildMappedRange x2 (y2 - x2 + 1UL) |> map)
+
+    sourceRanges |> Set.ofSeq,
+    destinationRanges |> Set.ofSeq
+
+let calculateMappedRanges
+    (mappings: Mapping<'source, 'destination> list)
+    (sourceRange: MappedRange<'source> Set)
+    : MappedRange<'destination> Set =
+
+    let rec findFirstMapping
+        (mappings: Mapping<'source, 'destination> list)
+        (sourceRanges: MappedRange<'source> Set)
+        (destinationRanges: MappedRange<'destination> Set)
+        : MappedRange<'source> Set * MappedRange<'destination> Set
+        =
+        match mappings with
+        | [] -> sourceRanges, destinationRanges
+        | _ when sourceRanges.Count = 0 -> sourceRanges, destinationRanges
+        | mapping :: mappings ->
+            let sourceRanges, newMappedRanges =
+                sourceRanges
+                |> Seq.map (calculateMappedRange mapping)
+                |> Seq.reduce (fun (l1, r1) (l2, r2) -> Set.union l1 l2, Set.union r1 r2 )
+
+            findFirstMapping
+                mappings
+                sourceRanges
+                (Set.union newMappedRanges destinationRanges)
+
+    let convert = MappedRange.convert<'source, 'destination>
+
+    let unmapped, mapped = findFirstMapping mappings sourceRange Set.empty
+    let result =
+        mapped
+        |> Seq.append (unmapped |> Seq.map convert)
+        |> Set.ofSeq
+
+    result
+
+let removeZeroRanges (ranges: MappedRange<_> Set) = ranges |> Set.filter (fun r -> r.Length > 0UL<range>)
+
+let rangeMap (mappings: SeedMappings) (input: MappedRange<seed> Set) : MappedRange<location> Set =
+    input
+    |> calculateMappedRanges mappings.SeedToSoil
+    |> removeZeroRanges
+    |> calculateMappedRanges mappings.SoilToFertilizer
+    |> removeZeroRanges
+    |> calculateMappedRanges mappings.FertilizerToWater
+    |> removeZeroRanges
+    |> calculateMappedRanges mappings.WaterToLight
+    |> removeZeroRanges
+    |> calculateMappedRanges mappings.LightToTemperature
+    |> removeZeroRanges
+    |> calculateMappedRanges mappings.TemperatureToHumidity
+    |> removeZeroRanges
+    |> calculateMappedRanges mappings.HumidityToLocation
+    |> removeZeroRanges
+
+let findLowestLocationNumberForSeedRangesV2 (input: string) =
+    let struct(seeds, mappings) = parseMappings input
+
+    let unwrapSeedRanges (seeds: uint64<seed> seq) : MappedRange<seed> seq = seq {
+        for pair in seeds |> Seq.chunkBySize 2 do
+            assert (pair.Length = 2)
+            match pair with
+            | [| left; right |] ->
+                yield
+                    { Start = left
+                      Length = uint64 right * 1UL<range> }
+            | _ -> failwith ""
+    }
+
+    unwrapSeedRanges seeds
+    |> Set.ofSeq
+    |> rangeMap mappings
+    |> Seq.map (_.Start >> uint64)
+    |> Seq.min

@@ -19,7 +19,7 @@ let testcases1 () = seq {
 
 [<TestCaseSource("testcases2")>]
 let ``Part 2`` (input: string) =
-    Day5.findLowestLocationNumberForSeedRanges input
+    Day5.findLowestLocationNumberForSeedRangesV2 input
 
 let testcases2 () = seq {
     TestCaseData(inputExample)
