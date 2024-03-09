@@ -226,23 +226,22 @@ module MappedRange =
         { Start = (uint64 range.Start) |> LanguagePrimitives.UInt64WithMeasure
           Length = range.Length }
 
+/// <returns>ranges without mapping and mapped ranges</returns>>
 let calculateMappedRange<[<Measure>] 'source, [<Measure>] 'destination>
     (mapping: Mapping<'source, 'destination>)
     (sourceRange: MappedRange<'source>)
     : MappedRange<'source> Set * MappedRange<'destination> Set
     =
-    let convert = MappedRange.convert<'source, 'destination>
-
-    let buildMappedRange (start: uint64) (length: uint64) : MappedRange<'source> =
+    let buildRange (start: uint64) (length: uint64) : MappedRange<'source> =
         { Start = start |> LanguagePrimitives.UInt64WithMeasure
           Length = length |> LanguagePrimitives.UInt64WithMeasure }
 
-    let map (source: MappedRange<'source>) : MappedRange<'destination> =
+    let mapSourceRange (source: MappedRange<'source>) : MappedRange<'destination> =
         let start = int64 source.Start
         let difference = int64 mapping.DestinationRangeStart - int64 mapping.SourceRangeStart
         let newStart = start + difference |> uint64
-        buildMappedRange newStart (uint64 source.Length)
-        |> convert
+        buildRange newStart (uint64 source.Length)
+        |> MappedRange.convert<'source, 'destination>
 
     let x1 = uint64 sourceRange.Start
     let y1 = uint64 sourceRange.Start + uint64 sourceRange.Length - 1UL
@@ -257,19 +256,19 @@ let calculateMappedRange<[<Measure>] 'source, [<Measure>] 'destination>
     let sourceRanges = ResizeArray()
     let destinationRanges = ResizeArray()
     if x1 >= x2 && y1 <= y2 then
-        destinationRanges.Add(map sourceRange)
+        destinationRanges.Add(mapSourceRange sourceRange)
     else
         if x1 < x2 then
-            sourceRanges.Add(buildMappedRange x1 (x2 - x1))
+            sourceRanges.Add(buildRange x1 (x2 - x1))
         else
-            destinationRanges.Add(buildMappedRange x1 (min y1 y2 - x1 + 1UL) |> map)
+            destinationRanges.Add(buildRange x1 (min y1 y2 - x1 + 1UL) |> mapSourceRange)
         if y1 <= y2 then
             let start = max x1 x2
-            destinationRanges.Add(buildMappedRange start (y1 - start + 1UL) |> map)
+            destinationRanges.Add(buildRange start (y1 - start + 1UL) |> mapSourceRange)
         else
-            sourceRanges.Add(buildMappedRange (y2 + 1UL (*edge*)) (y1 - y2))
+            sourceRanges.Add(buildRange (y2 + 1UL (*edge*)) (y1 - y2))
         if x1 < x2 && y1 > y2 then
-            destinationRanges.Add(buildMappedRange x2 (y2 - x2 + 1UL) |> map)
+            destinationRanges.Add(buildRange x2 (y2 - x2 + 1UL) |> mapSourceRange)
 
     sourceRanges |> Set.ofSeq,
     destinationRanges |> Set.ofSeq
@@ -279,7 +278,7 @@ let calculateMappedRanges
     (sourceRange: MappedRange<'source> Set)
     : MappedRange<'destination> Set =
 
-    let rec findFirstMapping
+    let rec mapRanges
         (mappings: Mapping<'source, 'destination> list)
         (sourceRanges: MappedRange<'source> Set)
         (destinationRanges: MappedRange<'destination> Set)
@@ -294,20 +293,15 @@ let calculateMappedRanges
                 |> Seq.map (calculateMappedRange mapping)
                 |> Seq.reduce (fun (l1, r1) (l2, r2) -> Set.union l1 l2, Set.union r1 r2 )
 
-            findFirstMapping
+            mapRanges
                 mappings
                 sourceRanges
                 (Set.union newMappedRanges destinationRanges)
 
-    let convert = MappedRange.convert<'source, 'destination>
-
-    let unmapped, mapped = findFirstMapping mappings sourceRange Set.empty
-    let result =
-        mapped
-        |> Seq.append (unmapped |> Seq.map convert)
-        |> Set.ofSeq
-
-    result
+    let unmapped, mapped = mapRanges mappings sourceRange Set.empty
+    let unmappedDestinationRanges = unmapped |> Set.map MappedRange.convert<'source, 'destination>
+    let destinationRanges = mapped |> Set.union unmappedDestinationRanges
+    destinationRanges
 
 let removeZeroRanges (ranges: MappedRange<_> Set) = ranges |> Set.filter (fun r -> r.Length > 0UL<range>)
 
